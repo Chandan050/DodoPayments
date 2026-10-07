@@ -1,0 +1,1 @@
+-- Seed default business and webhook endpoint is handled in Go at startup to keep API keys hashed.

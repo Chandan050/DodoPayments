@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dodo-db
+    environment:
+      POSTGRES_DB: dodo
+      POSTGRES_USER: dodo
+      POSTGRES_PASSWORD: dodo
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dodo -d dodo"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mock-psp:
+    build:
+      context: ./mock-psp
+    container_name: dodo-mock-psp
+    ports:
+      - "8081:8081"
+    environment:
+      MOCK_PSP_FORCE_FAIL: "close"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/healthz"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build:
+      context: .
+    container_name: dodo-app
+    depends_on:
+      db:
+        condition: service_healthy
+      mock-psp:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      DATABASE_URL: postgres://dodo:dodo@db:5432/dodo?sslmode=disable
+      MOCK_PSP_URL: http://mock-psp:8081
+      WEBHOOK_BASE_URL: http://app:8080
+    ports:
+      - "8080:8080"
+
+volumes:
+  postgres_data:

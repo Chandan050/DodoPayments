@@ -1,0 +1,172 @@
+openapi: 3.0.3
+info:
+  title: Dodo Payments API
+  version: 1.0.0
+  description: Minimal Invoice & Payment Service for billing products.
+servers:
+  - url: http://localhost:8080
+security:
+  - apiKey: []
+paths:
+  /healthz:
+    get:
+      summary: Health check
+      responses:
+        '200':
+          description: Server is healthy
+
+  /customers:
+    get:
+      summary: List customers for the authenticated business
+      responses:
+        '200':
+          description: Customers
+    post:
+      summary: Create a customer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, email]
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+      responses:
+        '201':
+          description: Customer created
+
+  /invoices:
+    get:
+      summary: List invoices
+      parameters:
+        - in: query
+          name: state
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice list
+    post:
+      summary: Create an invoice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvoiceCreateRequest'
+      responses:
+        '201':
+          description: Invoice created
+
+  /invoices/{invoiceId}:
+    get:
+      summary: Get invoice details
+      parameters:
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Invoice details
+
+  /invoices/{invoiceId}/payment:
+    get:
+      summary: Get the latest payment attempt for an invoice
+      parameters:
+        - in: path
+          name: invoiceId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Latest payment attempt, including pending status and next retry time
+        '404':
+          description: Invoice or payment attempt not found
+
+  /invoices/{invoiceId}/pay:
+    post:
+      summary: Attempt payment for an invoice
+      parameters:
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayRequest'
+      responses:
+        '200':
+          description: Payment result
+        '202':
+          description: Payment still pending
+        '409':
+          description: Invalid or conflicting transition
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: X-API-Key
+  schemas:
+    InvoiceCreateRequest:
+      type: object
+      required: [customer_id, due_date, line_items]
+      properties:
+        customer_id:
+          type: string
+        currency:
+          type: string
+          enum: [USD, GBP, INR, EUR]
+          default: USD
+          description: ISO 4217 currency. Amount fields are expressed in minor units.
+        due_date:
+          type: string
+          format: date
+        line_items:
+          type: array
+          items:
+            $ref: '#/components/schemas/LineItem'
+    LineItem:
+      type: object
+      required: [description, quantity, unit_amount_cents]
+      properties:
+        description:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+        unit_amount_cents:
+          type: integer
+          minimum: 1
+          description: Integer minor units. The field name is retained for compatibility; use currency-appropriate cents, pence, or paise.
+    PayRequest:
+      type: object
+      required: [card_token]
+      properties:
+        card_token:
+          type: string
+          example: tok_success
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              nullable: true
