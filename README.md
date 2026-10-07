@@ -2,6 +2,14 @@
 
 This project implements a minimal invoice and payment service in Go with PostgreSQL storage and a mock PSP. It is built to match the backend take-home assignment from the PDF.
 
+## Why Go instead of Rust
+
+I chose Go because I have four years of professional Go experience and have worked on payment systems, including migrating services from PHP to Go. That background helps me quickly understand where changes belong, trace issues through the codebase, and implement and verify payment workflows within the time available for this project.
+
+Rust is a strong choice for systems programming, but using it here would have added language ramp-up time and made it harder for me to confidently understand and deliver the complete solution in the same short period. Go lets me focus on the payment domain concerns—such as idempotency, concurrency, and failure recovery—rather than learning a new language while building them.
+
+Go's lightweight goroutines and straightforward concurrency model are also a good fit for concurrent request handling and background work such as payment reconciliation and webhook delivery. They provide a practical foundation for scaling these workloads as demand grows, while keeping the implementation approachable to maintain.
+
 ## Project structure
 
 ```text
